@@ -1,0 +1,90 @@
+#!/bin/bash
+NOTES_DIR="$HOME/notes"
+mkdir -p "$NOTES_DIR"
+
+case $1 in
+    new)
+        if [ -n "$3" ]; then
+            # If a subdirectory is specified, create it if it doesn't exist
+            SUBDIR="$NOTES_DIR/$3"
+            mkdir -p "$SUBDIR"
+        else
+            SUBDIR="$NOTES_DIR"
+        fi
+
+        if [ -n "$2" ]; then
+            # Use title if provided: lowercase and replace spaces with underscores
+            TITLE="$2"
+            FILENAME="$SUBDIR/$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '_').md"
+        else
+            # Default to date-based filename
+            FILENAME="$SUBDIR/$(date +'%Y-%m-%d').md"
+        fi
+
+        # Prevent overwriting existing files
+        if [ -e "$FILENAME" ]; then
+            echo "Error: File '$FILENAME' already exists."
+            exit 1
+        fi
+
+        # Create the note file with a title or default header
+        echo "# ${TITLE:-Untitled Note}" > "$FILENAME"
+        echo "Note created: $FILENAME"
+
+        # Open the note in Neovim in the background and wait for it to finish
+        $EDITOR "$FILENAME" &
+
+        # Wait for Neovim to finish before returning to the script
+        wait
+        echo "Back to script: Note saved as $FILENAME"
+        ;;
+    list)
+        # Open Telescope to list all .md files and open the selected one in Neovim
+        nvim -c "lua require('telescope.builtin').find_files({
+            cwd = '$NOTES_DIR',
+            prompt_title = 'Select a note to edit',
+            find_command = {'find', '.', '-type', 'f', '-name', '*.md'}
+        })" &
+        
+        # Wait for Neovim to finish before returning to the script
+        wait
+        ;;
+    view)
+        if [ -n "$3" ]; then
+            # View file in a specific subdirectory
+            less "$NOTES_DIR/$3/$2"
+        elif [ -n "$2" ]; then
+            # View file in the main directory
+            less "$NOTES_DIR/$2"
+        else
+            echo "Usage: $0 view <filename> [subdirectory]"
+        fi
+        ;;
+    search)
+        # Open Telescope to search for content inside .md files in the notes directory
+        nvim -c "lua require('telescope.builtin').live_grep({ cwd = '$NOTES_DIR', search_dirs = {'.'} })" &
+        
+        # Wait for Neovim to finish before returning to the script
+        wait
+        ;;
+    help)
+        cat <<EOF
+Usage: $0 <command> [arguments]
+
+Commands:
+  new <title> [subdirectory]  Create a new note with the given title or date.
+  list                        List all .md files in the notes directory.
+  view <filename> [subdirectory] View a specific note.
+  search                      Search content in all notes using Telescope.
+
+Examples:
+  $0 new "Meeting Notes"       Create a new note titled "Meeting Notes".
+  $0 list                      List all notes.
+  $0 view "2025-01-24.md"      View the "2025-01-24.md" note.
+  $0 search                    Search notes for a term using Telescope.
+EOF
+        ;;
+    *)
+        echo "Usage: $0 {new|list|view|search} [args]"
+        ;;
+esac
