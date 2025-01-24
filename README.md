@@ -1,8 +1,3 @@
-Sure! Here's a simple `README.md` template for your project that explains the functionality of the `nm` script.
-
-### `README.md`:
-
-```markdown
 # `nm` - A Simple Notes Management Script
 
 The `nm` script is a lightweight Bash-based tool for managing notes in Markdown format. It allows you to create, view, list, and search for notes stored in a specific directory. You can easily create notes with titles or dates, and the script integrates with Neovim to open and edit those notes.
